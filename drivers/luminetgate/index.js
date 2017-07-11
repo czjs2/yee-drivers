@@ -2,7 +2,6 @@
  * Created by zhuqizhong on 17-4-18.
  */
 
-const SendMessage = require('sendmessage');
 const event = require('events');
 const WorkerBase = require('../../WorkerBase');
 

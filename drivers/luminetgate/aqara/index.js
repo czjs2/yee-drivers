@@ -1,8 +1,8 @@
-const dgram = require('dgram');
-const os = require('os');
+const dgram = require('dgram')
+const os = require('os')
 const events = require('events');
 const _ = require('lodash');
-const consts = require('../../../consts');
+const consts = require('../../../consts')
 const {MULTICAST_ADDRESS, DISCOVERY_PORT, SERVER_PORT} = require('./constants');
 const Gateway = require('./lib/gateway');
 
@@ -40,6 +40,7 @@ class Aqara extends events.EventEmitter {
   }
 
   _triggerWhois () {
+    console.log('discover gateway:');
     const payload = '{"cmd": "whois"}';
     this._serverSocket.send(payload, 0, payload.length, DISCOVERY_PORT, MULTICAST_ADDRESS)
   }
@@ -50,6 +51,7 @@ class Aqara extends events.EventEmitter {
   _handleMessage (msg) {
     const parsed = JSON.parse(msg.toString());
 
+    //console.log('get message:',JSON.stringify(parsed));
     let handled = false;
 
     switch (parsed.cmd) {
@@ -61,7 +63,8 @@ class Aqara extends events.EventEmitter {
         break;
       case 'iam':
         handled = true;
-        if (this._gateways[parsed.sid]) break;
+        if (this._gateways[parsed.sid])
+          break;
         const gateway = new Gateway({
           ip: parsed.ip,
           sid: parsed.sid,
@@ -74,7 +77,12 @@ class Aqara extends events.EventEmitter {
           gateway.on('writeError',function(devId){
             this.emit('writeError',devId)
           }.bind(this));
-        gateway.on('offline', () => {gateway.removeAllListeners('offline');gateway.removeAllListeners('updateWQState');delete this._gateways[parsed.sid] });
+        gateway.on('offline', () => {
+          gateway.removeAllListeners('offline');
+          gateway.removeAllListeners('updateWQState');
+          delete this._gateways[parsed.sid]
+          this._triggerWhois();
+        });
         this._gateways[parsed.sid]= gateway;
         this.emit('gateway', gateway);
 
@@ -88,7 +96,8 @@ class Aqara extends events.EventEmitter {
       }
     }
 
-    if (!handled) console.log(`not handled: ${JSON.stringify(parsed)}`)
+    if (!handled)
+      console.log(`not handled: ${JSON.stringify(parsed)}`)
   }
   getDevice(devId){
     let device;
@@ -134,9 +143,13 @@ class Aqara extends events.EventEmitter {
     EnumDevices(){
     if(this.enumDeviceMute === 0){
         this.enumDeviceMute = 20;
-        _.each(this._gateways,function(gateway){
-            gateway.enumDevices();
-        })
+        this._triggerWhois();
+        setTimeout(()=>{
+            _.each(this._gateways,function(gateway){
+                gateway.enumDevices();
+            })
+        },2000)
+
 
     }
 
